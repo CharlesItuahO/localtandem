@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyRidge Tandem Paragliding — Real-Time Flight Booking & Vouchers</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono for aviation telemetry -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for crisp aviation & UI icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        navy: {
+                            850: '#0f1c2e',
+                            900: '#0a1320',
+                            950: '#060c14',
+                        },
+                        skybrand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        },
+                        flare: {
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                        }
+                    },
+                    boxShadow: {
+                        'glass': '0 20px 50px -12px rgba(10, 19, 32, 0.14)',
+                        'ticket': '0 25px 60px -15px rgba(10, 19, 32, 0.35)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Range Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 999px;
+            background: #e2e8f0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #f97316;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            margin-top: -7px;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.12);
+            background: #ea580c;
+        }
+        /* Ticket perforated edge effect */
+        .ticket-notch-left, .ticket-notch-right {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 9999px;
+            background-color: #f8fafc;
+            z-index: 10;
+        }
+        .boarding-pass-notch-left, .boarding-pass-notch-right {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 9999px;
+            background-color: #ffffff;
+            z-index: 10;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
+        .animate-telemetry {
+            animation: pulse-slow 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-flare-500 selection:text-white">
+
+    <!-- ==================== TOP LIVE TELEMETRY TICKER & STICKY NAVBAR ==================== -->
+    <div class="bg-navy-950 text-slate-300 text-xs border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 font-mono text-emerald-400 font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-telemetry"></span>
+                    LAUNCH WX: FLYABLE TODAY
+                </span>
+                <span class="hidden sm:inline text-slate-600">|</span>
+                <span class="font-mono text-slate-300">
+                    <i class="fa-solid fa-wind text-skybrand-400 mr-1"></i>
+                    <span id="live-wind-speed">11 kts ENE</span> • Cloud Base 4,800 ft
+                </span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="openRedeemModal()" class="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-ticket"></i>
+                    <span>Have a Gift Voucher? Redeem Code</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-18 py-3.5">
+                <!-- Brand Logo -->
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-900 to-skybrand-700 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-parachute-box text-lg text-flare-400"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-lg tracking-tight text-navy-900 block leading-none">SKYRIDGE</span>
+                        <span class="text-[11px] font-mono uppercase tracking-widest text-skybrand-600 font-semibold">Tandem Aviation</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center gap-7 text-sm font-semibold text-slate-600">
+                    <a href="#booking-engine" class="hover:text-navy-900 transition">Book Flight</a>
+                    <a href="#weight-calculator" class="hover:text-navy-900 transition">Weight &amp; Safety Check</a>
+                    <a href="#gift-vouchers" class="hover:text-navy-900 transition">Gift Vouchers</a>
+                    <a href="#sites-faq" class="hover:text-navy-900 transition">Flight Sites &amp; FAQ</a>
+                </nav>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2.5">
+                    <button onclick="openRedeemModal()" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-navy-900 bg-slate-100 hover:bg-slate-200 transition">
+                        <i class="fa-solid fa-barcode text-skybrand-600"></i>
+                        Redeem
+                    </button>
+                    <a href="#booking-engine" class="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-flare-500 hover:bg-flare-600 shadow-md shadow-flare-500/25 transition active:scale-95">
+                        <span>Book Now</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                    <!-- Mobile Menu Toggle -->
+                    <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl text-slate-700 hover:bg-slate-100" aria-label="Toggle Menu">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Dropdown Nav -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-100 px-4 py-4 space-y-2 shadow-lg">
+            <a href="#booking-engine" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-800 hover:bg-slate-50">Book Flight</a>
+            <a href="#weight-calculator" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-800 hover:bg-slate-50">Weight &amp; Safety Check</a>
+            <a href="#gift-vouchers" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-800 hover:bg-slate-50">Gift Vouchers</a>
+            <a href="#sites-faq" onclick="toggleMobileMenu()" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-800 hover:bg-slate-50">Flight Sites &amp; FAQ</a>
+            <button onclick="toggleMobileMenu(); openRedeemModal();" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-skybrand-700 bg-skybrand-50">
+                <i class="fa-solid fa-ticket mr-1.5"></i> Redeem Gift Voucher
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== HERO SECTION ==================== -->
+    <section class="relative overflow-hidden bg-navy-900 text-white">
+        <!-- Layered Scenic Ridge & Atmospheric Backdrop -->
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1503220317375-aaad61436b1b?auto=format&fit=crop&w=1920&q=80"
+                 onerror="this.onerror=null;this.src='https://placehold.co/1920x900/0a1320/38bdf8?text=SkyRidge+Tandem+Paragliding';"
+                 alt="Tandem paraglider soaring above coastal ridge at golden hour"
+                 class="w-full h-full object-cover object-center opacity-35 scale-105">
+            <div class="absolute inset-0 bg-gradient-to-r from-navy-950 via-navy-900/90 to-navy-900/50"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-navy-950 via-transparent to-transparent"></div>
+        </div>
+
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 lg:pt-20 lg:pb-24">
+            <div class="grid lg:grid-cols-12 gap-10 items-center">
+                <!-- Left Hero Copy -->
+                <div class="lg:col-span-7 space-y-6">
+                    <!-- Dynamic Wind & Weather Status Badge -->
+                    <div class="inline-flex flex-wrap items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-xs sm:text-sm">
+                        <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-400/30">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            LIVE WIND: 11 KTS ENE
+                        </span>
+                        <span class="text-slate-200 font-medium">Flyable Today • Ridge Lift 94% Optimal</span>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.08]">
+                        Soar Above the Coastline. <span class="text-transparent bg-clip-text bg-gradient-to-r from-skybrand-400 via-cyan-300 to-flare-400">Zero Experience Needed.</span>
+                    </h1>
+
+                    <p class="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+                        Fly strapped in with APPI &amp; USHPA Master Tandem Pilots. Check real-time ridge wind windows, verify your wing-load safety profile in seconds, or send an instant golden boarding pass voucher.
+                    </p>
+
+                    <!-- Primary Hero CTAs -->
+                    <div class="flex flex-wrap items-center gap-3.5 pt-2">
+                        <a href="#booking-engine" class="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-base font-bold bg-flare-500 hover:bg-flare-600 text-white shadow-lg shadow-flare-500/30 transition transform hover:-translate-y-0.5">
+                            <i class="fa-regular fa-calendar-check"></i>
+                            <span>Check Live Calendar</span>
+                        </a>
+                        <a href="#weight-calculator" class="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-base font-bold bg-white/10 hover:bg-white/15 text-white border border-white/20 backdrop-blur-sm transition">
+                            <i class="fa-solid fa-scale-balanced text-skybrand-400"></i>
+                            <span>Weight &amp; Wing Check</span>
+                        </a>
+                        <a href="#gift-vouchers" class="inline-flex items-center justify-center gap-2 px-5 py-4 rounded-2xl text-sm font-bold text-amber-300 hover:text-amber-200 transition">
+                            <i class="fa-solid fa-gift"></i>
+                            <span>Send Gift Voucher</span>
+                        </a>
+                    </div>
+
+                    <!-- Trust & Safety Telemetry Bar -->
+                    <div class="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 max-w-xl">
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold font-mono text-white">14,200+</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Safe Tandem Flights</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold font-mono text-skybrand-400">25–120 kg</div>
+                            <div class="text-xs text-slate-400 mt-0.5">Certified Wing Fleet</div>
+                        </div>
+                        <div>
+                            <div class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">4.98 ★</div>
+                            <div class="text-xs text-slate-400 mt-0.5">1,180 Verified Flyers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Hero Flight Packages Overview Cards -->
+                <div class="lg:col-span-5 space-y-3.5">
+                    <div class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-slate-400 px-1">
+                        <span>Today's Active Flight Tiers</span>
+                        <span class="text-skybrand-400">Select to Pre-Load</span>
+                    </div>
+
+                    <!-- Package Card 1 -->
+                    <div onclick="selectPackageFromHero('classic')" class="cursor-pointer group p-4 sm:p-5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 hover:border-skybrand-400/60 backdrop-blur-md transition flex items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-skybrand-500/20 text-skybrand-300 font-mono text-[11px] font-bold">20 MIN AIRTIME</span>
+                                <span class="text-xs text-slate-400">• 1,200 ft AGL</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-skybrand-300 transition">Scenic Ridge Glide</h3>
+                            <p class="text-xs text-slate-300">Smooth laminar coastal ridge soaring. Ideal for first-time flyers.</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-2xl font-extrabold font-mono text-white">$135</div>
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-flare-400 mt-1">
+                                Select <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Package Card 2 -->
+                    <div onclick="selectPackageFromHero('thermal')" class="cursor-pointer group p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-skybrand-900/70 to-navy-850/90 hover:from-skybrand-800/80 border-2 border-flare-500/70 backdrop-blur-md transition flex items-center justify-between gap-4 relative">
+                        <span class="absolute -top-2.5 right-4 px-2.5 py-0.5 rounded-full bg-flare-500 text-white text-[10px] font-extrabold uppercase tracking-wider shadow">Most Popular</span>
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-mono text-[11px] font-bold">40 MIN AIRTIME</span>
+                                <span class="text-xs text-slate-300">• 3,500 ft Cloudbase</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-amber-300 transition">Thermal Soar Expedition</h3>
+                            <p class="text-xs text-slate-300">Climb rising warm air currents with eagles for panoramic valley views.</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-2xl font-extrabold font-mono text-white">$195</div>
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-flare-400 mt-1">
+                                Select <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Package Card 3 -->
+                    <div onclick="selectPackageFromHero('sunset')" class="cursor-pointer group p-4 sm:p-5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 hover:border-amber-400/60 backdrop-blur-md transition flex items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono text-[11px] font-bold">45 MIN + ACRO + 360°</span>
+                            </div>
+                            <h3 class="text-lg font-bold text-white group-hover:text-amber-300 transition">High-Altitude Acro &amp; Sunset VIP</h3>
+                            <p class="text-xs text-slate-300">Optional high-G wingovers, spiral dives &amp; full 4K Insta360 media pack.</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-2xl font-extrabold font-mono text-white">$265</div>
+                            <span class="inline-flex items-center gap-1 text-xs font-bold text-flare-400 mt-1">
+                                Select <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== INTERACTIVE WEIGHT-LIMIT & ELIGIBILITY CALCULATOR ==================== -->
+    <section id="weight-calculator" class="py-16 lg:py-20 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+                <div>
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-skybrand-50 text-skybrand-700 text-xs font-bold uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-shield-halved"></i> Pre-Flight Safety Engineering
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
+                        Tandem Wing-Load &amp; Eligibility Calculator
+                    </h2>
+                    <p class="text-slate-600 mt-2 max-w-2xl">
+                        Paraglider airspeed and launch safety depend directly on total hook-in weight. Enter your metrics below to verify wing certification and match with the optimal wind window.
+                    </p>
+                </div>
+
+                <!-- Metric / Imperial Unit Toggle -->
+                <div class="inline-flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200 self-start">
+                    <button id="unit-metric-btn" onclick="setUnitSystem('metric')" class="px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition">
+                        Metric (kg / cm)
+                    </button>
+                    <button id="unit-imperial-btn" onclick="setUnitSystem('imperial')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition">
+                        Imperial (lbs / ft-in)
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8 items-stretch">
+                <!-- Left Inputs Panel -->
+                <div class="lg:col-span-7 bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200/90 space-y-7">
+                    <!-- Passenger Weight Control -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="weight-slider" class="text-sm font-bold text-navy-900 flex items-center gap-2">
+                                <i class="fa-solid fa-weight-scale text-flare-500"></i>
+                                Passenger Weight (Clothed)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="weight-input" value="75" min="20" max="140" step="1"
+                                       class="w-24 px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-right font-mono font-bold text-navy-900 focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                                <span id="weight-unit-label" class="text-xs font-mono font-bold text-slate-500 w-8">kg</span>
+                            </div>
+                        </div>
+                        <input type="range" id="weight-slider" min="20" max="140" value="75" class="w-full">
+                        <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1.5" id="weight-scale-markers">
+                            <span>20 kg (Child)</span>
+                            <span>45 kg (Std Min)</span>
+                            <span>100 kg (XL Threshold)</span>
+                            <span>120 kg (Max)</span>
+                        </div>
+                    </div>
+
+                    <!-- Height & Age Grid -->
+                    <div class="grid sm:grid-cols-2 gap-6 pt-2">
+                        <!-- Height -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label for="height-slider" class="text-sm font-bold text-navy-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-ruler-vertical text-skybrand-600"></i>
+                                    Height
+                                </label>
+                                <span id="height-display" class="font-mono text-sm font-bold text-navy-900 bg-white px-3 py-1 rounded-lg border border-slate-200">175 cm</span>
+                            </div>
+                            <input type="range" id="height-slider" min="110" max="215" value="175" class="w-full">
+                        </div>
+
+                        <!-- Age -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label for="age-slider" class="text-sm font-bold text-navy-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-user-clock text-skybrand-600"></i>
+                                    Passenger Age
+                                </label>
+                                <span id="age-display" class="font-mono text-sm font-bold text-navy-900 bg-white px-3 py-1 rounded-lg border border-slate-200">32 yrs</span>
+                            </div>
+                            <input type="range" id="age-slider" min="5" max="85" value="32" class="w-full">
+                        </div>
+                    </div>
+
+                    <!-- Optional Mobility / Launch Comfort Check -->
+                    <div class="pt-4 border-t border-slate-200">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-3">Takeoff Mobility &amp; Comfort Check</span>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <label class="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 cursor-pointer hover:border-skybrand-400 transition">
+                                <input type="checkbox" id="mobility-jog" checked onchange="calculateEligibility()" class="mt-1 w-4 h-4 rounded text-flare-500 focus:ring-flare-500">
+                                <div>
+                                    <span class="text-xs font-bold text-navy-900 block">Able to jog 5–10 steps on launch</span>
+                                    <span class="text-[11px] text-slate-500">Standard foot-launch takeoff procedure</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-3.5 rounded-2xl bg-white border border-slate-200 cursor-pointer hover:border-skybrand-400 transition">
+                                <input type="checkbox" id="motion-sensitive" onchange="calculateEligibility()" class="mt-1 w-4 h-4 rounded text-flare-500 focus:ring-flare-500">
+                                <div>
+                                    <span class="text-xs font-bold text-navy-900 block">Prefer gentle, smooth gliding</span>
+                                    <span class="text-[11px] text-slate-500">Zero steep turns or acrobatic maneuvers</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Live Result & Wing Telemetry Card -->
+                <div class="lg:col-span-5 flex flex-col justify-between rounded-3xl p-6 sm:p-8 bg-navy-900 text-white shadow-glass relative overflow-hidden">
+                    <!-- Subtle decorative aviation grid -->
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-skybrand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <div class="space-y-5 relative z-10">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono uppercase tracking-widest text-slate-400">Wing Load Telemetry</span>
+                            <span id="calc-status-pill" class="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                <i class="fa-solid fa-circle-check mr-1"></i> OPTIMAL / APPROVED
+                            </span>
+                        </div>
+
+                        <div>
+                            <h3 id="calc-wing-title" class="text-2xl font-extrabold text-white">Standard Tandem Wing (38 m²)</h3>
+                            <p id="calc-feedback-desc" class="text-sm text-slate-300 mt-1.5 leading-relaxed">
+                                Ideal mid-range wing loading. Eligible for all daily wind windows from smooth morning air to midday thermals.
+                            </p>
+                        </div>
+
+                        <!-- Telemetry Specs Grid -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                                <div class="text-[11px] font-mono text-slate-400">ASSIGNED CANOPY</div>
+                                <div id="calc-canopy-spec" class="text-sm font-bold text-skybrand-300 mt-0.5">EN-B 38m² (45–100kg)</div>
+                            </div>
+                            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                                <div class="text-[11px] font-mono text-slate-400">OPTIMAL WIND WINDOW</div>
+                                <div id="calc-wind-window" class="text-sm font-bold text-amber-300 mt-0.5">All Day (8–16 kts)</div>
+                            </div>
+                            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                                <div class="text-[11px] font-mono text-slate-400">HARNESS FIT</div>
+                                <div id="calc-harness-fit" class="text-sm font-bold text-white mt-0.5">Medium / Large Airbag</div>
+                            </div>
+                            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                                <div class="text-[11px] font-mono text-slate-400">PILOT MATCHING</div>
+                                <div id="calc-pilot-match" class="text-sm font-bold text-emerald-300 mt-0.5">Any Senior Tandem Pilot</div>
+                            </div>
+                        </div>
+
+                        <!-- Visual Weight Envelope Gauge -->
+                        <div class="pt-2">
+                            <div class="flex justify-between text-[11px] font-mono text-slate-400 mb-1.5">
+                                <span>25 kg</span>
+                                <span>45 kg</span>
+                                <span>100 kg</span>
+                                <span>120 kg</span>
+                            </div>
+                            <div class="h-3 w-full rounded-full bg-slate-800 overflow-hidden flex relative">
+                                <div class="w-[21%] bg-skybrand-500/70 border-r border-navy-900" title="Child Wing: 25-45kg"></div>
+                                <div class="w-[58%] bg-emerald-500 border-r border-navy-900" title="Standard Wing: 45-100kg"></div>
+                                <div class="w-[21%] bg-amber-500" title="XL Wing: 100-120kg"></div>
+                                <!-- Dynamic Marker Needle -->
+                                <div id="weight-gauge-marker" class="absolute top-0 bottom-0 w-1.5 bg-white shadow-[0_0_8px_#fff] transition-all duration-200" style="left: 52%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 1-Click Apply to Booking CTA -->
+                    <div class="pt-6 mt-6 border-t border-white/10 relative z-10">
+                        <button id="apply-weight-btn" onclick="applyWeightToBooking()" class="w-full py-3.5 px-5 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-bold text-sm shadow-lg shadow-flare-500/25 flex items-center justify-center gap-2 transition active:scale-98">
+                            <i class="fa-solid fa-check-to-slot"></i>
+                            <span>Apply My Weight Profile to Booking</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== REAL-TIME CALENDAR AVAILABILITY & FLIGHT BOOKING ENGINE ==================== -->
+    <section id="booking-engine" class="py-16 lg:py-24 bg-slate-50 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-flare-500/10 text-flare-600 text-xs font-bold uppercase tracking-wider mb-3">
+                        <i class="fa-solid fa-satellite-dish"></i> Live Dispatch &amp; Wind Forecast
+                    </span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
+                        Real-Time Calendar &amp; Flight Booking
+                    </h2>
+                    <p class="text-slate-600 mt-2">
+                        Select your preferred flight date to inspect live pilot capacity and micro-climate wind slots.
+                    </p>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-600 bg-white px-4 py-2.5 rounded-2xl border border-slate-200">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Optimal Flyable</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Limited / Light Wind</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> High Wind Hold</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Sold Out</span>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-8 items-start">
+                <!-- LEFT 8 COLUMNS: Step 1 Calendar, Step 2 Time Slots, Step 3 Tier & Passengers -->
+                <div class="lg:col-span-8 space-y-8">
+                    
+                    <!-- STEP 1: Interactive Monthly Calendar Picker -->
+                    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <span class="text-xs font-mono font-bold text-skybrand-600 uppercase">Step 01</span>
+                                <h3 class="text-xl font-extrabold text-navy-900" id="calendar-month-title">November 2026</h3>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changeCalendarMonth(-1)" id="prev-month-btn" class="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-700 transition" aria-label="Previous Month">
+                                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                                </button>
+                                <button onclick="changeCalendarMonth(1)" id="next-month-btn" class="w-10 h-10 rounded-xl border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-700 transition" aria-label="Next Month">
+                                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Weekday Headers -->
+                        <div class="grid grid-cols-7 gap-1.5 text-center text-xs font-mono font-bold text-slate-400 pb-2">
+                            <div>SUN</div>
+                            <div>MON</div>
+                            <div>TUE</div>
+                            <div>WED</div>
+                            <div>THU</div>
+                            <div>FRI</div>
+                            <div>SAT</div>
+                        </div>
+
+                        <!-- Calendar Grid Container -->
+                        <div id="calendar-days-grid" class="grid grid-cols-7 gap-1.5 sm:gap-2">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: Launch Time Slots for Selected Date -->
+                    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+                            <div>
+                                <span class="text-xs font-mono font-bold text-skybrand-600 uppercase">Step 02</span>
+                                <h3 class="text-xl font-extrabold text-navy-900">
+                                    Launch Windows for <span id="selected-date-heading" class="text-skybrand-600">Fri, Nov 20</span>
+                                </h3>
+                            </div>
+                            <span id="weight-window-hint" class="hidden text-xs font-bold px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200">
+                                <i class="fa-solid fa-wind mr-1"></i> XL Wing Tip: 08:30 AM &amp; 04:45 PM offer smoothest lift
+                            </span>
+                        </div>
+
+                        <div id="time-slots-container" class="grid sm:grid-cols-2 gap-3.5">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: Flight Tier, Multi-Passenger & Add-Ons -->
+                    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-6">
+                        <div>
+                            <span class="text-xs font-mono font-bold text-skybrand-600 uppercase">Step 03</span>
+                            <h3 class="text-xl font-extrabold text-navy-900">Flight Experience &amp; Flyers</h3>
+                        </div>
+
+                        <!-- Flight Tier Selector -->
+                        <div class="grid sm:grid-cols-3 gap-3.5" id="tier-selector-grid">
+                            <button type="button" onclick="selectFlightTier('classic')" id="tier-btn-classic" class="text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-skybrand-400 transition">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-mono font-bold text-skybrand-600">20 MIN</span>
+                                    <span class="font-mono font-extrabold text-navy-900">$135</span>
+                                </div>
+                                <div class="font-bold text-sm text-navy-900">Classic Ridge Glide</div>
+                                <p class="text-xs text-slate-500 mt-1">Smooth coastal ridge flight</p>
+                            </button>
+
+                            <button type="button" onclick="selectFlightTier('thermal')" id="tier-btn-thermal" class="text-left p-4 rounded-2xl border-2 border-flare-500 bg-flare-500/5 transition relative">
+                                <span class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-flare-500 text-white text-[10px] font-bold">POPULAR</span>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-mono font-bold text-flare-600">40 MIN</span>
+                                    <span class="font-mono font-extrabold text-navy-900">$195</span>
+                                </div>
+                                <div class="font-bold text-sm text-navy-900">Extended Thermal</div>
+                                <p class="text-xs text-slate-500 mt-1">High-altitude thermal climb</p>
+                            </button>
+
+                            <button type="button" onclick="selectFlightTier('sunset')" id="tier-btn-sunset" class="text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-skybrand-400 transition">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs font-mono font-bold text-purple-600">45 MIN + 360°</span>
+                                    <span class="font-mono font-extrabold text-navy-900">$265</span>
+                                </div>
+                                <div class="font-bold text-sm text-navy-900">Sunset VIP + Media</div>
+                                <p class="text-xs text-slate-500 mt-1">Includes 4K Insta360 pack</p>
+                            </button>
+                        </div>
+
+                        <!-- Multi-Passenger & Passenger Details -->
+                        <div class="grid sm:grid-cols-2 gap-5 pt-2 border-t border-slate-100">
+                            <div>
+                                <label class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Flyers in Group</label>
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <button type="button" onclick="setPassengerCount(1)" id="pax-btn-1" class="p-3 rounded-xl border-2 border-navy-900 bg-navy-900 text-white text-xs font-bold flex items-center justify-center gap-2 transition">
+                                        <i class="fa-solid fa-user"></i>
+                                        <span>1 Flyer (Solo + Pilot)</span>
+                                    </button>
+                                    <button type="button" onclick="setPassengerCount(2)" id="pax-btn-2" class="p-3 rounded-xl border-2 border-slate-200 text-slate-700 hover:border-navy-900 text-xs font-bold flex items-center justify-center gap-2 transition">
+                                        <i class="fa-solid fa-user-group"></i>
+                                        <span>2 Flyers (Side-by-Side)</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="booking-pax-name" class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Lead Passenger Full Name</label>
+                                <input type="text" id="booking-pax-name" placeholder="e.g. Jordan Vance" oninput="updateBookingSummary()"
+                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                            </div>
+                        </div>
+
+                        <div class="grid sm:grid-cols-2 gap-5">
+                            <div>
+                                <label for="booking-pax-email" class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Confirmation Email</label>
+                                <input type="email" id="booking-pax-email" placeholder="jordan@example.com"
+                                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                            </div>
+                            <div>
+                                <label for="booking-pax-weight" class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Confirmed Flyer Weight (kg)</label>
+                                <div class="relative">
+                                    <input type="number" id="booking-pax-weight" value="75" min="25" max="120" onchange="syncBookingWeightInput()"
+                                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                                    <span id="booking-wing-tag" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                        Std Wing OK
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional Flight Add-ons -->
+                        <div class="pt-3 border-t border-slate-100">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-3">Optional Flight Add-Ons</span>
+                            <div class="grid sm:grid-cols-2 gap-3">
+                                <label id="addon-media-label" class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 hover:border-skybrand-400 cursor-pointer transition">
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="addon-media" onchange="updateBookingSummary()" class="w-4 h-4 rounded text-flare-500 focus:ring-flare-500">
+                                        <div>
+                                            <span class="text-xs font-bold text-navy-900 block">4K Insta360 Video &amp; Photo Pack</span>
+                                            <span class="text-[11px] text-slate-500">Wingtip selfie stick + instant phone transfer</span>
+                                        </div>
+                                    </div>
+                                    <span id="addon-media-price" class="font-mono text-xs font-extrabold text-navy-900">+$39</span>
+                                </label>
+
+                                <label class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 hover:border-skybrand-400 cursor-pointer transition">
+                                    <div class="flex items-center gap-3">
+                                        <input type="checkbox" id="addon-insurance" checked onchange="updateBookingSummary()" class="w-4 h-4 rounded text-flare-500 focus:ring-flare-500">
+                                        <div>
+                                            <span class="text-xs font-bold text-navy-900 block">Zero-Penalty Weather Flex Pass</span>
+                                            <span class="text-[11px] text-slate-500">100% cash refund or free reschedule anytime</span>
+                                        </div>
+                                    </div>
+                                    <span class="font-mono text-xs font-extrabold text-navy-900">+$15</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT 4 COLUMNS: Sticky Live Booking Summary Card -->
+                <div class="lg:col-span-4 lg:sticky lg:top-24">
+                    <div class="bg-navy-900 text-white rounded-3xl p-6 sm:p-7 shadow-glass border border-slate-800 space-y-5">
+                        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                            <div>
+                                <span class="text-[11px] font-mono uppercase tracking-widest text-skybrand-400">Flight Manifest</span>
+                                <h3 class="text-lg font-extrabold">Booking Summary</h3>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-white/10 font-mono text-xs font-bold text-amber-300" id="summary-tier-badge">
+                                THERMAL 40M
+                            </span>
+                        </div>
+
+                        <!-- Manifest Details -->
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Launch Date</span>
+                                <span class="font-bold text-white" id="summary-date">Fri, Nov 20, 2026</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Time Window</span>
+                                <span class="font-bold text-skybrand-300" id="summary-slot">08:30 AM • Smooth Morning</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">Flyers &amp; Wing</span>
+                                <span class="font-bold text-white" id="summary-pax-wing">1 Flyer • Std 38m²</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400">Safety Check</span>
+                                <span id="summary-safety-badge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                                    VERIFIED (75 kg)
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Voucher Code Inline Apply Box -->
+                        <div class="pt-3 border-t border-white/10">
+                            <label class="text-[11px] font-mono uppercase text-slate-400 block mb-1.5">Gift Voucher / Promo Code</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="inline-voucher-input" placeholder="e.g. FLY-SKY-2026"
+                                       class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-mono uppercase text-white placeholder-slate-400 focus:outline-none focus:border-amber-400">
+                                <button type="button" onclick="applyInlineVoucher()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold text-xs shrink-0 transition">
+                                    Apply
+                                </button>
+                            </div>
+                            <div id="applied-voucher-banner" class="hidden mt-2 p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-between text-xs">
+                                <span class="text-emerald-300 font-mono font-bold" id="applied-voucher-text">FLY-SKY-2026 (-$195)</span>
+                                <button type="button" onclick="removeAppliedVoucher()" class="text-slate-300 hover:text-white ml-2" title="Remove Voucher">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Line Item Pricing Breakdown -->
+                        <div class="pt-3 border-t border-white/10 space-y-2 text-sm">
+                            <div class="flex justify-between text-slate-300">
+                                <span id="price-line-base-label">Extended Thermal (×1)</span>
+                                <span class="font-mono font-semibold" id="price-line-base">$195.00</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300" id="price-row-addons">
+                                <span>Selected Add-Ons</span>
+                                <span class="font-mono font-semibold" id="price-line-addons">$15.00</span>
+                            </div>
+                            <div class="flex justify-between text-emerald-400 hidden" id="price-row-discount">
+                                <span>Voucher Credit Applied</span>
+                                <span class="font-mono font-bold" id="price-line-discount">-$195.00</span>
+                            </div>
+                            <div class="flex justify-between items-baseline pt-3 border-t border-white/15">
+                                <span class="text-base font-bold text-white">Total Due Today</span>
+                                <span class="text-3xl font-extrabold font-mono text-flare-400" id="price-line-total">$210.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Flight Booking CTA -->
+                        <button type="button" onclick="confirmFlightBooking()" class="w-full py-4 px-6 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-extrabold text-base shadow-lg shadow-flare-500/30 flex items-center justify-center gap-2.5 transition transform active:scale-98">
+                            <i class="fa-solid fa-plane-departure"></i>
+                            <span>Confirm Flight &amp; Issue Pass</span>
+                        </button>
+
+                        <p class="text-[11px] text-center text-slate-400">
+                            <i class="fa-solid fa-lock text-emerald-400 mr-1"></i> Instant confirmation • Free reschedule if winds exceed 18 kts
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== INSTANT GIFT VOUCHER CHECKOUT & LIVE PREVIEW ==================== -->
+    <section id="gift-vouchers" class="py-16 lg:py-24 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mb-12">
+                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-gift"></i> Instant Digital &amp; Printable Boarding Pass
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-navy-900 tracking-tight">
+                    Gift an Unforgettable Tandem Flight
+                </h2>
+                <p class="text-slate-600 mt-2">
+                    Customize an authentic aviation boarding pass voucher. Valid for 12 months on any flyable date—recipients can redeem online in one click.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-12 gap-10 items-start">
+                <!-- Left Customizer Form (6 Cols) -->
+                <div class="lg:col-span-6 bg-slate-50 rounded-3xl p-6 sm:p-8 border border-slate-200 space-y-6">
+                    <!-- Voucher Value / Package Selector -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2.5">1. Choose Flight Package or Credit Value</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <button type="button" onclick="selectVoucherAmount(135, 'Scenic Ridge Glide')" id="v-amt-135" class="v-amt-btn p-3 rounded-2xl border-2 border-slate-200 bg-white text-center hover:border-amber-400 transition">
+                                <div class="font-mono font-extrabold text-base text-navy-900">$135</div>
+                                <div class="text-[10px] font-semibold text-slate-500">Ridge 20m</div>
+                            </button>
+                            <button type="button" onclick="selectVoucherAmount(195, 'Thermal Soar Expedition')" id="v-amt-195" class="v-amt-btn p-3 rounded-2xl border-2 border-amber-500 bg-amber-50 text-center transition">
+                                <div class="font-mono font-extrabold text-base text-navy-900">$195</div>
+                                <div class="text-[10px] font-semibold text-amber-800">Thermal 40m</div>
+                            </button>
+                            <button type="button" onclick="selectVoucherAmount(265, 'Sunset VIP + 360° Media')" id="v-amt-265" class="v-amt-btn p-3 rounded-2xl border-2 border-slate-200 bg-white text-center hover:border-amber-400 transition">
+                                <div class="font-mono font-extrabold text-base text-navy-900">$265</div>
+                                <div class="text-[10px] font-semibold text-slate-500">Sunset VIP</div>
+                            </button>
+                            <button type="button" onclick="enableCustomVoucherAmount()" id="v-amt-custom" class="v-amt-btn p-3 rounded-2xl border-2 border-slate-200 bg-white text-center hover:border-amber-400 transition">
+                                <div class="font-mono font-extrabold text-base text-navy-900">Custom</div>
+                                <div class="text-[10px] font-semibold text-slate-500">$50–$600</div>
+                            </button>
+                        </div>
+
+                        <!-- Custom Monetary Input (Shown when Custom clicked) -->
+                        <div id="custom-voucher-amount-wrap" class="hidden mt-3">
+                            <div class="relative">
+                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-500">$</span>
+                                <input type="number" id="custom-voucher-input" value="150" min="50" max="600" oninput="updateCustomVoucherValue()"
+                                       class="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 bg-white font-mono font-bold text-navy-900 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Occasion Theme -->
+                    <div>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2.5">2. Select Boarding Pass Theme</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <button type="button" onclick="setVoucherTheme('adventure')" id="v-theme-adventure" class="v-theme-btn px-3 py-2.5 rounded-xl border-2 border-navy-900 bg-navy-900 text-white text-xs font-bold transition">
+                                🪂 Adventure
+                            </button>
+                            <button type="button" onclick="setVoucherTheme('birthday')" id="v-theme-birthday" class="v-theme-btn px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-xs font-bold hover:border-slate-300 transition">
+                                🎂 Birthday
+                            </button>
+                            <button type="button" onclick="setVoucherTheme('anniversary')" id="v-theme-anniversary" class="v-theme-btn px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-xs font-bold hover:border-slate-300 transition">
+                                ✨ Anniversary
+                            </button>
+                            <button type="button" onclick="setVoucherTheme('holiday')" id="v-theme-holiday" class="v-theme-btn px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-xs font-bold hover:border-slate-300 transition">
+                                🎄 Holiday
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Personalization Fields -->
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="v-recipient" class="text-xs font-bold text-navy-900 block mb-1.5">Recipient Name</label>
+                            <input type="text" id="v-recipient" placeholder="Alex Rivera" oninput="updateVoucherPreview()"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                        </div>
+                        <div>
+                            <label for="v-sender" class="text-xs font-bold text-navy-900 block mb-1.5">From (Sender Name)</label>
+                            <input type="text" id="v-sender" placeholder="Maya Lin" oninput="updateVoucherPreview()"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="v-message" class="text-xs font-bold text-navy-900 block mb-1.5">Personal Flight Note</label>
+                        <textarea id="v-message" rows="2" maxlength="110" placeholder="Cleared for takeoff! Happy Birthday — let's touch the clouds!" oninput="updateVoucherPreview()"
+                                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500"></textarea>
+                    </div>
+
+                    <!-- Delivery Method & Purchaser Email -->
+                    <div class="grid sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                        <div>
+                            <label class="text-xs font-bold text-navy-900 block mb-1.5">Delivery Format</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="setVoucherDelivery('email')" id="v-del-email" class="py-2 px-3 rounded-xl border-2 border-skybrand-600 bg-skybrand-50 text-skybrand-800 text-xs font-bold">
+                                    <i class="fa-solid fa-envelope mr-1"></i> Instant Email
+                                </button>
+                                <button type="button" onclick="setVoucherDelivery('print')" id="v-del-print" class="py-2 px-3 rounded-xl border-2 border-slate-200 bg-white text-slate-600 text-xs font-bold">
+                                    <i class="fa-solid fa-print mr-1"></i> Print-at-Home
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="v-buyer-email" class="text-xs font-bold text-navy-900 block mb-1.5">Send Voucher Receipt To</label>
+                            <input type="email" id="v-buyer-email" placeholder="maya@example.com"
+                                   class="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-skybrand-500">
+                        </div>
+                    </div>
+
+                    <!-- Instant Voucher Checkout CTA -->
+                    <button type="button" onclick="purchaseGiftVoucher()" class="w-full py-4 px-6 rounded-2xl bg-navy-900 hover:bg-navy-850 text-white font-extrabold text-base shadow-lg flex items-center justify-center gap-2.5 transition transform active:scale-98">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <span id="v-checkout-btn-label">Issue Instant Voucher — $195</span>
+                    </button>
+                </div>
+
+                <!-- Right Live Visual Boarding Pass Preview (6 Cols) -->
+                <div class="lg:col-span-6 space-y-4">
+                    <div class="flex items-center justify-between text-xs font-mono text-slate-500 px-1">
+                        <span>LIVE GOLDEN TICKET PREVIEW</span>
+                        <span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-1"></i>12-MONTH VALIDITY</span>
+                    </div>
+
+                    <!-- Authentic Luxury Aviation Boarding Pass Ticket -->
+                    <div id="voucher-ticket-card" class="relative rounded-3xl overflow-hidden shadow-ticket bg-gradient-to-br from-navy-900 via-navy-850 to-skybrand-900 text-white border border-amber-400/30 transition-all duration-300">
+                        <!-- Top Golden Metallic Header Band -->
+                        <div id="voucher-header-band" class="px-6 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-flare-500 text-navy-950 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <i class="fa-solid fa-parachute-box text-xl"></i>
+                                <div>
+                                    <div class="font-extrabold text-sm tracking-wider uppercase leading-none">SKYRIDGE TANDEM PASS</div>
+                                    <div id="preview-occasion-label" class="text-[11px] font-mono font-bold opacity-85 mt-0.5">ADVENTURE FLIGHT AUTHORIZATION</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-mono font-bold uppercase block opacity-80">FLIGHT VALUE</span>
+                                <span id="preview-amount" class="font-mono font-extrabold text-2xl leading-none">$195</span>
+                            </div>
+                        </div>
+
+                        <!-- Main Boarding Pass Body -->
+                        <div class="p-6 sm:p-7 space-y-6 relative">
+                            <!-- Route Header -->
+                            <div class="flex items-center justify-between border-b border-white/15 pb-5">
+                                <div>
+                                    <span class="text-[10px] font-mono uppercase text-slate-400 block">ORIGIN LAUNCH</span>
+                                    <span class="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">SKR-01</span>
+                                    <span class="text-xs text-skybrand-300 block">Eagle Ridge 1,450ft</span>
+                                </div>
+                                <div class="flex-1 px-4 flex flex-col items-center">
+                                    <span id="preview-pkg-name" class="text-[11px] font-mono text-amber-300 font-bold mb-1 text-center">THERMAL SOAR EXPEDITION</span>
+                                    <div class="w-full flex items-center gap-2 text-slate-400">
+                                        <span class="h-[1px] flex-1 bg-dashed border-t border-dashed border-slate-500"></span>
+                                        <i class="fa-solid fa-plane text-amber-400 text-sm"></i>
+                                        <span class="h-[1px] flex-1 bg-dashed border-t border-dashed border-slate-500"></span>
+                                    </div>
+                                    <span class="text-[10px] font-mono text-slate-400 mt-1">NON-STOP AIRBORNE</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-mono uppercase text-slate-400 block">DESTINATION</span>
+                                    <span class="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-white">CLD-9</span>
+                                    <span class="text-xs text-skybrand-300 block">Cloudbase LZ</span>
+                                </div>
+                            </div>
+
+                            <!-- Passenger & Sender Details -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-[10px] font-mono uppercase text-slate-400 block">PASSENGER / RECIPIENT</span>
+                                    <span id="preview-recipient" class="text-lg font-extrabold text-white truncate block">Alex Rivera</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] font-mono uppercase text-slate-400 block">ISSUED BY</span>
+                                    <span id="preview-sender" class="text-base font-bold text-slate-200 truncate block">Maya Lin</span>
+                                </div>
+                            </div>
+
+                            <!-- Personal Message Box -->
+                            <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                                <span class="text-[10px] font-mono uppercase text-amber-400 block mb-1">FLIGHT CREW DISPATCH NOTE</span>
+                                <p id="preview-message" class="text-xs sm:text-sm text-slate-200 italic leading-relaxed">
+                                    "Cleared for takeoff! Happy Birthday — let's touch the clouds!"
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Perforated Tear Line -->
+                        <div class="relative flex items-center justify-between px-4">
+                            <div class="w-6 h-6 rounded-full bg-white -ml-7"></div>
+                            <div class="flex-1 border-t-2 border-dashed border-white/20"></div>
+                            <div class="w-6 h-6 rounded-full bg-white -mr-7"></div>
+                        </div>
+
+                        <!-- Bottom Stub with QR Code & Voucher Code -->
+                        <div class="px-6 py-5 bg-navy-950/60 flex items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <span class="text-[10px] font-mono uppercase text-slate-400 block">REDEMPTION VOUCHER CODE</span>
+                                <div class="font-mono text-lg sm:text-xl font-extrabold text-amber-400 tracking-wider" id="preview-voucher-code">
+                                    FLY-SKY-2026
+                                </div>
+                                <div class="text-[11px] text-slate-400">
+                                    Valid Thru: <span class="text-slate-200 font-mono">NOV 19, 2027</span> • <span id="preview-delivery-tag">Instant Digital</span>
+                                </div>
+                            </div>
+
+                            <!-- Crisp Inline SVG Aviation QR Code -->
+                            <div class="p-2 bg-white rounded-xl shrink-0 shadow-inner" title="Scan at Launch Pad">
+                                <svg class="w-14 h-14 text-navy-950" viewBox="0 0 36 36" fill="currentColor">
+                                    <path d="M2 2h10v10H2V2zm2 2v6h6V4H4zm2 2h2v2H6V6zm18-4h10v10H24V2zm2 2v6h6V4h-6zm2 2h2v2h-2V6zM2 24h10v10H2V24zm2 2v6h6v-6H4zm2 2h2v2H6v-2zm10-26h2v4h-2V2zm4 2h2v4h-2V4zm-6 6h4v2h-4v-2zm6 2h2v4h-2v-4zM2 14h4v2H2v-2zm6 2h4v2H8v-2zm6-2h4v4h-4v-4zm6 4h4v2h-4v-2zm6-4h4v4h-4v-4zm4 6h4v2h-4v-2zM14 20h2v4h-2v-4zm4 2h4v2h-4v-2zm6 2h2v4h-2v-4zm4 2h6v2h-6v-2zm-14 4h4v4h-4v-4zm6 2h4v2h-4v-2zm6 0h2v4h-2v-4zm4 2h4v2h-4v-2z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Test Demo Code Helper -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-skybrand-50 border border-skybrand-200 text-xs">
+                        <span class="text-skybrand-900 font-medium">
+                            <i class="fa-solid fa-circle-info text-skybrand-600 mr-1"></i>
+                            Want to test voucher redemption right now?
+                        </span>
+                        <button type="button" onclick="applyDemoVoucherAndScroll()" class="font-mono font-bold text-skybrand-700 hover:text-skybrand-900 underline">
+                            Apply Demo Code FLY-SKY-2026 →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FLIGHT SITES, WIND TELEMETRY & FAQ ==================== -->
+    <section id="sites-faq" class="py-16 lg:py-24 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-12">
+                <!-- Left: Launch Sites & Wind Profiles (5 Cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div>
+                        <span class="text-xs font-mono font-bold uppercase tracking-wider text-skybrand-600">Primary Flying Sites</span>
+                        <h2 class="text-3xl font-extrabold text-navy-900 mt-1">Launch Sites &amp; Micro-Climates</h2>
+                        <p class="text-sm text-slate-600 mt-2">
+                            Our dispatch team selects the optimal launch ridge each morning based on real-time anemometer telemetry.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-extrabold text-navy-900">1. Eagle Ridge Coastal Bluff</span>
+                                <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-xs font-bold">ACTIVE TODAY</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                                Elevation 1,450 ft • Works best in ENE–ESE sea breezes (8–16 kts). Features a groomed grassy launch ramp and beachfront landing zone.
+                            </p>
+                            <div class="flex items-center gap-4 text-[11px] font-mono text-slate-500">
+                                <span><i class="fa-solid fa-compass text-skybrand-600 mr-1"></i>6.4125° N, 3.4180° E</span>
+                                <span><i class="fa-solid fa-mountain text-flare-500 mr-1"></i>Glide Ratio 9.8:1</span>
+                            </div>
+                        </div>
+
+                        <div class="p-5 rounded-3xl bg-white border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-extrabold text-navy-900">2. Horizon Valley Thermal Bowl</span>
+                                <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-xs font-bold">STANDBY</span>
+                            </div>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                                Elevation 2,600 ft • Ideal for midday XC thermal climbs up to 4,800 ft cloudbase with panoramic valley views.
+                            </p>
+                            <div class="flex items-center gap-4 text-[11px] font-mono text-slate-500">
+                                <span><i class="fa-solid fa-compass text-skybrand-600 mr-1"></i>6.5244° N, 3.3792° E</span>
+                                <span><i class="fa-solid fa-cloud-sun text-amber-500 mr-1"></i>Thermal Peak 11:00–15:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Interactive Accordion FAQ (7 Cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div>
+                        <span class="text-xs font-mono font-bold uppercase tracking-wider text-flare-600">Pre-Flight Briefing</span>
+                        <h2 class="text-3xl font-extrabold text-navy-900 mt-1">Frequently Asked Questions</h2>
+                    </div>
+
+                    <div class="space-y-3" id="faq-accordion">
+                        <!-- FAQ 1 -->
+                        <div class="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(1)" class="w-full px-6 py-4 text-left flex items-center justify-between font-bold text-navy-900 text-sm sm:text-base">
+                                <span>What happens if the wind is too strong or rainy on my flight day?</span>
+                                <i id="faq-icon-1" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                            </button>
+                            <div id="faq-body-1" class="px-6 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Safety always comes first. If launch winds exceed 18 knots or rain develops, our Flight Director will notify you via SMS/email at least 2 hours prior. You can reschedule to any open slot free of charge or receive a 100% refund.
+                            </div>
+                        </div>
+
+                        <!-- FAQ 2 -->
+                        <div class="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(2)" class="w-full px-6 py-4 text-left flex items-center justify-between font-bold text-navy-900 text-sm sm:text-base">
+                                <span>Why are weight limits strictly enforced for tandem paragliding?</span>
+                                <i id="faq-icon-2" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                            </button>
+                            <div id="faq-body-2" class="hidden px-6 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Every tandem wing is EN/LTF load-tested within a certified total hook-in weight range. Lighter flyers (25–45 kg) fly on smaller child-certified wings, standard flyers (45–100 kg) use our 38m² fleet, and heavier flyers (100–120 kg) are paired with lightweight pilots on 42m² XL wings during smooth laminar wind windows.
+                            </div>
+                        </div>
+
+                        <!-- FAQ 3 -->
+                        <div class="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(3)" class="w-full px-6 py-4 text-left flex items-center justify-between font-bold text-navy-900 text-sm sm:text-base">
+                                <span>What should I wear and bring to the launch site?</span>
+                                <i id="faq-icon-3" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                            </button>
+                            <div id="faq-body-3" class="hidden px-6 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Wear closed-toe athletic shoes or hiking boots with good grip, long pants or comfortable shorts, and a light windbreaker jacket (it is ~5°C cooler at 3,000 ft). We provide certified helmets, airbag harnesses, and flight gloves.
+                            </div>
+                        </div>
+
+                        <!-- FAQ 4 -->
+                        <div class="rounded-2xl bg-white border border-slate-200 overflow-hidden">
+                            <button type="button" onclick="toggleFaq(4)" class="w-full px-6 py-4 text-left flex items-center justify-between font-bold text-navy-900 text-sm sm:text-base">
+                                <span>Can two friends or a couple fly at the exact same time?</span>
+                                <i id="faq-icon-4" class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform"></i>
+                            </button>
+                            <div id="faq-body-4" class="hidden px-6 pb-4 text-sm text-slate-600 leading-relaxed">
+                                Yes! Select "2 Flyers (Side-by-Side)" in Step 3 of the booking calendar. We launch two tandem pilots within 60 seconds of each other so you can soar wingtip-to-wingtip and wave mid-air.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="bg-navy-950 text-slate-400 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-skybrand-600/20 border border-skybrand-500/30 flex items-center justify-center text-flare-400">
+                    <i class="fa-solid fa-parachute-box"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-white tracking-tight block leading-none">SKYRIDGE TANDEM</span>
+                    <span class="text-[11px] font-mono text-slate-500">APPI &amp; USHPA Certified Flight Operations</span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-6 text-xs font-semibold">
+                <a href="#booking-engine" class="hover:text-white transition">Live Calendar</a>
+                <a href="#weight-calculator" class="hover:text-white transition">Weight Calculator</a>
+                <a href="#gift-vouchers" class="hover:text-white transition">Gift Vouchers</a>
+                <button onclick="openRedeemModal()" class="hover:text-amber-400 transition">Redeem Code</button>
+            </div>
+
+            <div class="text-xs font-mono text-slate-500">
+                Dispatch Radio: 144.450 MHz • © 2026 SkyRidge
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== MODAL 1: VOUCHER REDEMPTION MODAL ==================== -->
+    <div id="redeem-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 relative">
+            <button onclick="closeRedeemModal()" class="absolute top-5 right-5 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600" aria-label="Close Modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-ticket"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-navy-900">Redeem Gift Voucher</h3>
+                    <p class="text-xs text-slate-500">Apply your boarding pass credit directly to any flight.</p>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label for="modal-voucher-code" class="text-xs font-bold uppercase tracking-wider text-slate-500 block">Enter 12-Digit Voucher Code</label>
+                <input type="text" id="modal-voucher-code" placeholder="FLY-SKY-2026"
+                       class="w-full px-4 py-3 rounded-2xl border-2 border-slate-300 font-mono text-base font-extrabold uppercase text-navy-900 focus:outline-none focus:border-skybrand-500">
+                <div id="modal-redeem-feedback" class="hidden text-xs font-semibold p-3 rounded-xl"></div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+                <span>Sample active demo code:</span>
+                <button type="button" onclick="document.getElementById('modal-voucher-code').value='FLY-SKY-2026'" class="font-mono font-bold text-skybrand-700 hover:underline">
+                    FLY-SKY-2026 ($195)
+                </button>
+            </div>
+
+            <button type="button" onclick="submitModalVoucher()" class="w-full py-3.5 px-5 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-extrabold text-sm shadow-lg transition">
+                Apply Credit &amp; Choose Flight Date
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: FLIGHT BOOKING CONFIRMATION BOARDING PASS ==================== -->
+    <div id="booking-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 my-8">
+            <div class="bg-gradient-to-r from-navy-900 to-skybrand-800 px-6 py-5 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                    <div>
+                        <span class="text-[11px] font-mono uppercase tracking-wider text-skybrand-300 block">FLIGHT DISPATCH CONFIRMED</span>
+                        <h3 class="text-lg font-extrabold">Official Tandem Boarding Pass</h3>
+                    </div>
+                </div>
+                <button onclick="closeBookingConfirmModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-5">
+                <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                    <div>
+                        <span class="text-[11px] font-mono text-slate-400 block">BOOKING REFERENCE</span>
+                        <span id="confirm-ref-code" class="font-mono text-xl font-extrabold text-navy-900">SKR-84920</span>
+                    </div>
+                    <button type="button" onclick="copyTextToClipboard(document.getElementById('confirm-ref-code').innerText, 'Booking reference copied!')" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-700">
+                        <i class="fa-regular fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Lead Flyer</span>
+                        <span id="confirm-pax-name" class="font-bold text-navy-900">Jordan Vance</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Launch Date &amp; Window</span>
+                        <span id="confirm-date-slot" class="font-bold text-skybrand-700">Nov 20 • 08:30 AM</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Flight Package</span>
+                        <span id="confirm-package" class="font-bold text-navy-900">Extended Thermal (40m)</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Assigned Canopy</span>
+                        <span id="confirm-wing" class="font-bold text-emerald-700">Standard 38m² (75 kg)</span>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                    <div class="font-bold"><i class="fa-solid fa-location-dot mr-1 text-flare-600"></i> Check-In Briefing: 30 Mins Prior</div>
+                    <p>Meet at Eagle Ridge Base Camp Shuttle Bay. Bring closed-toe shoes and your booking reference above.</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div>
+                        <span class="text-xs text-slate-400 block">Amount Settled</span>
+                        <span id="confirm-paid-amount" class="font-mono text-xl font-extrabold text-navy-900">$210.00</span>
+                    </div>
+                    <button type="button" onclick="closeBookingConfirmModal()" class="px-6 py-3 rounded-2xl bg-navy-900 hover:bg-navy-850 text-white font-bold text-sm">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: GENERATED GIFT VOUCHER CHECKOUT RECEIPT ==================== -->
+    <div id="voucher-issued-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-navy-950/85 backdrop-blur-md">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 relative text-center">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mx-auto">
+                <i class="fa-solid fa-gift"></i>
+            </div>
+            <div>
+                <span class="text-xs font-mono font-bold uppercase text-emerald-600">Payment Approved • Active Immediately</span>
+                <h3 class="text-2xl font-extrabold text-navy-900 mt-1">Golden Voucher Issued!</h3>
+                <p id="issued-voucher-subtext" class="text-xs text-slate-500 mt-1">
+                    Sent to maya@example.com and ready for instant flight booking.
+                </p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-navy-900 text-white space-y-2">
+                <span class="text-[10px] font-mono uppercase tracking-widest text-slate-400 block">UNIQUE VOUCHER CODE</span>
+                <div id="issued-voucher-code" class="font-mono text-2xl font-extrabold text-amber-400 tracking-wider">FLY-882-VIP</div>
+                <div class="text-xs text-slate-300" id="issued-voucher-val-desc">$195.00 Credit • Valid 12 Months</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="copyTextToClipboard(document.getElementById('issued-voucher-code').innerText, 'Voucher code copied to clipboard!')" class="py-3 px-4 rounded-2xl border border-slate-300 hover:bg-slate-50 text-xs font-bold text-navy-900 flex items-center justify-center gap-1.5">
+                    <i class="fa-regular fa-copy"></i> Copy Code
+                </button>
+                <button type="button" onclick="useNewlyIssuedVoucherNow()" class="py-3 px-4 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fa-solid fa-calendar-check"></i> Book With It Now
+                </button>
+            </div>
+
+            <button type="button" onclick="closeVoucherIssuedModal()" class="text-xs font-semibold text-slate-400 hover:text-slate-600">
+                Close Window
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST NOTIFICATION ==================== -->
+    <div id="toast-banner" class="fixed bottom-5 right-5 z-50 hidden items-center gap-3 px-4 py-3 rounded-2xl bg-navy-900 text-white text-xs font-bold shadow-xl border border-white/15">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-message">Action completed</span>
+    </div>
+
+    <!-- ==================== INTERACTIVE APPLICATION LOGIC ==================== -->
+    <script>
+        // -------------------- APPLICATION STATE --------------------
+        const state = {
+            unitSystem: 'metric', // 'metric' | 'imperial'
+            weightKg: 75,
+            heightCm: 175,
+            age: 32,
+            wingCategory: 'standard', // 'child' | 'standard' | 'xl' | 'out'
+            
+            // Calendar & Booking State
+            currentYear: 2026,
+            currentMonth: 10, // 0-indexed: 10 = November 2026
+            selectedDateStr: '2026-11-20',
+            selectedSlotId: '0830',
+            selectedTier: 'thermal',
+            paxCount: 1,
+            appliedVoucher: null, // { code: string, amount: number }
+
+            // Voucher Builder State
+            voucherAmount: 195,
+            voucherPkgLabel: 'Thermal Soar Expedition',
+            voucherTheme: 'adventure',
+            voucherDelivery: 'email',
+            generatedVoucherCode: 'FLY-SKY-2026',
+
+            // Valid Voucher Registry (Pre-seeded + dynamically added when purchased)
+            voucherRegistry: {
+                'FLY-SKY-2026': { amount: 195, label: 'Thermal Soar Demo Credit' },
+                'SKYRIDGE100': { amount: 100, label: 'Scenic Flight Gift Credit' },
+                'VIP265': { amount: 265, label: 'Sunset VIP Full Flight' }
+            }
+        };
+
+        const FLIGHT_TIERS = {
+            classic: { id: 'classic', name: 'Classic Ridge Glide', badge: 'RIDGE 20M', duration: '20m', price: 135 },
+            thermal: { id: 'thermal', name: 'Extended Thermal', badge: 'THERMAL 40M', duration: '40m', price: 195 },
+            sunset:  { id: 'sunset',  name: 'Sunset VIP + 360° Media', badge: 'SUNSET VIP', duration: '45m', price: 265 }
+        };
+
+        // Deterministic availability & wind generator for realistic calendar dates
+        function getDayForecastData(year, month, day) {
+            const dateObj = new Date(year, month, day);
+            const today = new Date(2026, 10, 19); // Reference current date Nov 19, 2026
+            today.setHours(0, 0, 0, 0);
+
+            if (dateObj < today) {
+                return { status: 'past', spots: 0, wind: '--', label: 'Past' };
+            }
+
+            const seed = (year * 37 + (month + 1) * 17 + day * 13) % 19;
+            if (day === 20 && month === 10) {
+                return { status: 'optimal', spots: 4, wind: '11 kts ENE', label: '4 spots' };
+            }
+            if (seed === 2 || seed === 14) {
+                return { status: 'wind-hold', spots: 0, wind: '22 kts Gusts', label: 'Wind Hold' };
+            }
+            if (seed === 5 || seed === 11) {
+                return { status: 'sold-out', spots: 0, wind: '12 kts E', label: 'Sold Out' };
+            }
+            if (seed % 4 === 0) {
+                return { status: 'limited', spots: 1, wind: '14 kts ENE', label: '1 spot left' };
+            }
+            const spots = (seed % 3) + 2; // 2 to 4 spots
+            const kts = 9 + (seed % 6);
+            return { status: 'optimal', spots, wind: `${kts} kts ENE`, label: `${spots} spots` };
+        }
+
+        function getTimeSlotsForDate(dateStr) {
+            const parts = dateStr.split('-').map(Number);
+            const day = parts[2] || 20;
+            const forecast = getDayForecastData(parts[0], parts[1] - 1, day);
+
+            const baseSlots = [
+                {
+                    id: '0830',
+                    time: '08:30 AM',
+                    title: 'Smooth Morning Laminar Air',
+                    wind: '8 kts ENE • Glassy',
+                    seats: forecast.status === 'limited' ? 1 : Math.min(4, forecast.spots),
+                    smoothForXL: true
+                },
+                {
+                    id: '1100',
+                    time: '11:00 AM',
+                    title: 'Midday Thermal Lift',
+                    wind: '12 kts E • Active Thermals',
+                    seats: forecast.status === 'limited' ? 0 : Math.max(1, forecast.spots - 1),
+                    smoothForXL: false
+                },
+                {
+                    id: '1430',
+                    time: '02:30 PM',
+                    title: 'Golden Ridge Soar',
+                    wind: '14 kts ENE • Steady Ridge',
+                    seats: day % 2 === 0 ? 2 : 1,
+                    smoothForXL: false
+                },
+                {
+                    id: '1645',
+                    time: '04:45 PM',
+                    title: 'Sunset Magic Hour Glide',
+                    wind: '9 kts NE • Silky Sunset',
+                    seats: day % 3 === 0 ? 0 : 2,
+                    smoothForXL: true
+                }
+            ];
+
+            if (forecast.status === 'wind-hold' || forecast.status === 'sold-out' || forecast.status === 'past') {
+                return baseSlots.map(s => ({ ...s, seats: 0 }));
+            }
+            return baseSlots;
+        }
+
+        // -------------------- WEIGHT CALCULATOR ENGINE --------------------
+        function setUnitSystem(unit) {
+            state.unitSystem = unit;
+            const metricBtn = document.getElementById('unit-metric-btn');
+            const imperialBtn = document.getElementById('unit-imperial-btn');
+            const weightSlider = document.getElementById('weight-slider');
+            const weightInput = document.getElementById('weight-input');
+            const weightUnitLabel = document.getElementById('weight-unit-label');
+            const markers = document.getElementById('weight-scale-markers');
+
+            if (unit === 'metric') {
+                metricBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition';
+                imperialBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition';
+                weightSlider.min = 20;
+                weightSlider.max = 140;
+                weightSlider.value = state.weightKg;
+                weightInput.min = 20;
+                weightInput.max = 140;
+                weightInput.value = state.weightKg;
+                weightUnitLabel.textContent = 'kg';
+                markers.innerHTML = '<span>20 kg (Child)</span><span>45 kg (Std Min)</span><span>100 kg (XL Threshold)</span><span>120 kg (Max)</span>';
+            } else {
+                imperialBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition';
+                metricBtn.className = 'px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition';
+                const lbs = Math.round(state.weightKg * 2.20462);
+                weightSlider.min = 44;
+                weightSlider.max = 308;
+                weightSlider.value = lbs;
+                weightInput.min = 44;
+                weightInput.max = 308;
+                weightInput.value = lbs;
+                weightUnitLabel.textContent = 'lbs';
+                markers.innerHTML = '<span>44 lbs (Child)</span><span>100 lbs (Std Min)</span><span>220 lbs (XL Threshold)</span><span>265 lbs (Max)</span>';
+            }
+            updateHeightAndAgeDisplays();
+            calculateEligibility();
+        }
+
+        function updateHeightAndAgeDisplays() {
+            const heightDisplay = document.getElementById('height-display');
+            const ageDisplay = document.getElementById('age-display');
+            if (state.unitSystem === 'metric') {
+                heightDisplay.textContent = `${state.heightCm} cm`;
+            } else {
+                const totalInches = Math.round(state.heightCm / 2.54);
+                const feet = Math.floor(totalInches / 12);
+                const inches = totalInches % 12;
+                heightDisplay.textContent = `${feet}'${inches}"`;
+            }
+            ageDisplay.textContent = `${state.age} yrs`;
+        }
+
+        function calculateEligibility() {
+            const w = state.weightKg;
+            const canJog = document.getElementById('mobility-jog').checked;
+            const gentlePref = document.getElementById('motion-sensitive').checked;
+
+            const pill = document.getElementById('calc-status-pill');
+            const title = document.getElementById('calc-wing-title');
+            const desc = document.getElementById('calc-feedback-desc');
+            const canopy = document.getElementById('calc-canopy-spec');
+            const windWin = document.getElementById('calc-wind-window');
+            const harness = document.getElementById('calc-harness-fit');
+            const pilotMatch = document.getElementById('calc-pilot-match');
+            const gauge = document.getElementById('weight-gauge-marker');
+            const applyBtn = document.getElementById('apply-weight-btn');
+
+            // Position gauge between 25kg (0%) and 120kg (100%)
+            const pct = Math.max(0, Math.min(100, ((w - 25) / (120 - 25)) * 100));
+            gauge.style.left = `calc(${pct}% - 3px)`;
+
+            // Harness sizing based on height
+            if (state.heightCm < 145) harness.textContent = 'XS Junior Supair Harness';
+            else if (state.heightCm < 182) harness.textContent = 'Medium / Large Airbag';
+            else harness.textContent = 'XL Tall-Frame Airbag';
+
+            if (w < 25 || w > 120) {
+                state.wingCategory = 'out';
+                pill.className = 'px-3 py-1 rounded-full text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-400/30';
+                pill.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> OUT OF OPERATING RANGE';
+                title.textContent = w < 25 ? 'Below Minimum Hook-In Load (25 kg)' : 'Exceeds Certified Max Load (120 kg)';
+                desc.textContent = w < 25
+                    ? 'For aerodynamic stability, minimum passenger weight is 25 kg (55 lbs). We look forward to flying with you once you reach 25 kg!'
+                    : 'Our largest EN-certified tandem glider is rated to 120 kg (265 lbs) passenger weight to maintain safe flare speed on landing.';
+                canopy.textContent = 'Not Certified';
+                windWin.textContent = 'N/A';
+                pilotMatch.textContent = 'Safety Hold';
+                applyBtn.disabled = true;
+                applyBtn.className = 'w-full py-3.5 px-5 rounded-2xl bg-slate-700 text-slate-400 font-bold text-sm cursor-not-allowed flex items-center justify-center gap-2';
+            } else if (w >= 25 && w < 45) {
+                state.wingCategory = 'child';
+                pill.className = 'px-3 py-1 rounded-full text-xs font-extrabold bg-skybrand-500/20 text-skybrand-300 border border-skybrand-400/30';
+                pill.innerHTML = '<i class="fa-solid fa-child-reaching mr-1"></i> CHILD / LIGHTWEIGHT APPROVED';
+                title.textContent = 'Junior Tandem Canopy (34 m²)';
+                desc.textContent = 'Paired with our lightweight specialist pilots and a dedicated youth harness with extra torso buckles. Parent/guardian signature required at check-in.';
+                canopy.textContent = 'EN-B 34m² (25–45kg)';
+                windWin.textContent = 'Smooth Morning / Sunset';
+                pilotMatch.textContent = 'Lightweight Specialist';
+                applyBtn.disabled = false;
+                applyBtn.className = 'w-full py-3.5 px-5 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-bold text-sm shadow-lg shadow-flare-500/25 flex items-center justify-center gap-2 transition cursor-pointer';
+            } else if (w >= 45 && w <= 100) {
+                state.wingCategory = 'standard';
+                pill.className = 'px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                pill.innerHTML = '<i class="fa-solid fa-circle-check mr-1"></i> OPTIMAL / APPROVED';
+                title.textContent = 'Standard Tandem Wing (38 m²)';
+                desc.textContent = gentlePref
+                    ? 'Optimal mid-range wing loading configured for a gentle, scenic glide with zero steep banking.'
+                    : 'Ideal mid-range wing loading. Eligible for all daily wind windows from smooth morning air to midday thermals.';
+                canopy.textContent = 'EN-B 38m² (45–100kg)';
+                windWin.textContent = canJog ? 'All Day (8–16 kts)' : '10–15 kts Assisted Launch';
+                pilotMatch.textContent = 'Any Senior Tandem Pilot';
+                applyBtn.disabled = false;
+                applyBtn.className = 'w-full py-3.5 px-5 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-bold text-sm shadow-lg shadow-flare-500/25 flex items-center justify-center gap-2 transition cursor-pointer';
+            } else {
+                // 100 - 120 kg: Conditional / Light Wind Window
+                state.wingCategory = 'xl';
+                pill.className = 'px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-400/30';
+                pill.innerHTML = '<i class="fa-solid fa-wind mr-1"></i> XL WING • OPTIMAL WIND WINDOW';
+                title.textContent = 'Heavy-Lift XL Tandem Wing (42 m²)';
+                desc.textContent = 'Approved! You will be matched with a lightweight pilot on our 42 m² XL wing. Morning (08:30) and Sunset (04:45) slots are highlighted in the calendar for easiest launch lift.';
+                canopy.textContent = 'EN-B 42m² XL (100–120kg)';
+                windWin.textContent = '08:30 AM & 04:45 PM Slots';
+                pilotMatch.textContent = 'Lightweight XL Captain';
+                applyBtn.disabled = false;
+                applyBtn.className = 'w-full py-3.5 px-5 rounded-2xl bg-flare-500 hover:bg-flare-600 text-white font-bold text-sm shadow-lg shadow-flare-500/25 flex items-center justify-center gap-2 transition cursor-pointer';
+            }
+        }
+
+        function applyWeightToBooking() {
+            const bookingWeightInput = document.getElementById('booking-pax-weight');
+            bookingWeightInput.value = state.weightKg;
+            syncBookingWeightInput();
+
+            // Highlight XL hint if applicable
+            const hint = document.getElementById('weight-window-hint');
+            if (state.wingCategory === 'xl' || state.wingCategory === 'child') {
+                hint.classList.remove('hidden');
+            } else {
+                hint.classList.add('hidden');
+            }
+
+            renderTimeSlots();
+            showToast(`Applied ${state.weightKg} kg profile & matched wing to booking!`);
+            document.getElementById('booking-engine').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function syncBookingWeightInput() {
+            const val = parseInt(document.getElementById('booking-pax-weight').value, 10) || 75;
+            const clamped = Math.max(25, Math.min(120, val));
+            state.weightKg = clamped;
+            document.getElementById('booking-pax-weight').value = clamped;
+
+            // Also sync calculator
+            if (state.unitSystem === 'metric') {
+                document.getElementById('weight-slider').value = clamped;
+                document.getElementById('weight-input').value = clamped;
+            } else {
+                const lbs = Math.round(clamped * 2.20462);
+                document.getElementById('weight-slider').value = lbs;
+                document.getElementById('weight-input').value = lbs;
+            }
+            calculateEligibility();
+
+            const tag = document.getElementById('booking-wing-tag');
+            if (clamped < 45) {
+                tag.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-skybrand-100 text-skybrand-800';
+                tag.textContent = '34m² Junior';
+            } else if (clamped <= 100) {
+                tag.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800';
+                tag.textContent = '38m² Std OK';
+            } else {
+                tag.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+                tag.textContent = '42m² XL Wing';
+            }
+            updateBookingSummary();
+        }
+
+        // -------------------- CALENDAR & BOOKING ENGINE --------------------
+        function renderCalendar() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('calendar-month-title').textContent = `${monthNames[state.currentMonth]} ${state.currentYear}`;
+
+            const grid = document.getElementById('calendar-days-grid');
+            grid.innerHTML = '';
+
+            const firstDay = new Date(state.currentYear, state.currentMonth, 1).getDay();
+            const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+
+            // Blank cells before 1st of month
+            for (let i = 0; i < firstDay; i++) {
+                const blank = document.createElement('div');
+                blank.className = 'h-16 sm:h-20 rounded-2xl bg-slate-50/50';
+                grid.appendChild(blank);
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const forecast = getDayForecastData(state.currentYear, state.currentMonth, d);
+                const isSelected = state.selectedDateStr === dateStr;
+                const isDisabled = forecast.status === 'past' || forecast.status === 'wind-hold' || forecast.status === 'sold-out';
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.disabled = isDisabled;
+
+                let statusDot = 'bg-emerald-500';
+                let badgeTextClass = 'text-emerald-700';
+                if (forecast.status === 'limited') {
+                    statusDot = 'bg-amber-500';
+                    badgeTextClass = 'text-amber-700';
+                } else if (forecast.status === 'wind-hold') {
+                    statusDot = 'bg-rose-500';
+                    badgeTextClass = 'text-rose-600';
+                } else if (forecast.status === 'sold-out' || forecast.status === 'past') {
+                    statusDot = 'bg-slate-300';
+                    badgeTextClass = 'text-slate-400';
+                }
+
+                if (isSelected) {
+                    btn.className = 'h-16 sm:h-20 p-2 rounded-2xl border-2 border-flare-500 bg-navy-900 text-white flex flex-col justify-between items-start shadow-md transition transform scale-[1.02]';
+                } else if (isDisabled) {
+                    btn.className = 'h-16 sm:h-20 p-2 rounded-2xl border border-slate-100 bg-slate-50 text-slate-400 flex flex-col justify-between items-start opacity-65 cursor-not-allowed';
+                } else {
+                    btn.className = 'h-16 sm:h-20 p-2 rounded-2xl border border-slate-200 bg-white hover:border-skybrand-400 hover:bg-skybrand-50/40 text-navy-900 flex flex-col justify-between items-start transition cursor-pointer';
+                }
+
+                btn.innerHTML = `
+                    <div class="w-full flex items-center justify-between">
+                        <span class="font-mono text-xs sm:text-sm font-extrabold">${d}</span>
+                        <span class="w-2 h-2 rounded-full ${statusDot}"></span>
+                    </div>
+                    <div class="w-full text-left">
+                        <span class="block text-[10px] sm:text-[11px] font-bold leading-tight truncate ${isSelected ? 'text-amber-300' : badgeTextClass}">
+                            ${forecast.label}
+                        </span>
+                    </div>
+                `;
+
+                if (!isDisabled) {
+                    btn.onclick = () => {
+                        state.selectedDateStr = dateStr;
+                        renderCalendar();
+                        renderTimeSlots();
+                        updateBookingSummary();
+                    };
+                }
+
+                grid.appendChild(btn);
+            }
+        }
+
+        function changeCalendarMonth(delta) {
+            let newMonth = state.currentMonth + delta;
+            let newYear = state.currentYear;
+            if (newMonth > 11) { newMonth = 0; newYear++; }
+            if (newMonth < 0) { newMonth = 11; newYear--; }
+            // Restrict browsing between Nov 2026 and Feb 2027
+            if (newYear === 2026 && newMonth < 10) return;
+            if (newYear === 2027 && newMonth > 2) return;
+
+            state.currentMonth = newMonth;
+            state.currentYear = newYear;
+            renderCalendar();
+        }
+
+        function renderTimeSlots() {
+            const container = document.getElementById('time-slots-container');
+            const slots = getTimeSlotsForDate(state.selectedDateStr);
+            const dateObj = new Date(state.selectedDateStr + 'T12:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            document.getElementById('selected-date-heading').textContent = formattedDate;
+
+            // Ensure currently selected slot has enough seats; if not, pick first available
+            const currentValid = slots.find(s => s.id === state.selectedSlotId && s.seats >= state.paxCount);
+            if (!currentValid) {
+                const firstOpen = slots.find(s => s.seats >= state.paxCount);
+                if (firstOpen) state.selectedSlotId = firstOpen.id;
+            }
+
+            container.innerHTML = '';
+            slots.forEach(slot => {
+                const isSelected = slot.id === state.selectedSlotId && slot.seats >= state.paxCount;
+                const isUnavailable = slot.seats < state.paxCount;
+                const isRecommendedXL = (state.wingCategory === 'xl' || state.wingCategory === 'child') && slot.smoothForXL && !isUnavailable;
+
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.disabled = isUnavailable;
+
+                if (isSelected) {
+                    card.className = 'text-left p-4 rounded-2xl border-2 border-flare-500 bg-navy-900 text-white shadow-md transition relative';
+                } else if (isUnavailable) {
+                    card.className = 'text-left p-4 rounded-2xl border border-slate-200 bg-slate-50 text-slate-400 opacity-65 cursor-not-allowed relative';
+                } else {
+                    card.className = 'text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-skybrand-400 bg-white text-navy-900 transition relative';
+                }
+
+                card.innerHTML = `
+                    ${isRecommendedXL ? `<span class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full bg-amber-400 text-navy-950 text-[10px] font-extrabold">OPTIMAL WIND WINDOW</span>` : ''}
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-mono font-extrabold text-base ${isSelected ? 'text-amber-300' : 'text-navy-900'}">${slot.time}</span>
+                        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-md ${
+                            isUnavailable
+                                ? 'bg-slate-200 text-slate-500'
+                                : isSelected
+                                    ? 'bg-emerald-500/20 text-emerald-300'
+                                    : 'bg-emerald-50 text-emerald-700'
+                        }">
+                            ${isUnavailable ? 'Full' : `${slot.seats} ${slot.seats === 1 ? 'seat' : 'seats'} left`}
+                        </span>
+                    </div>
+                    <div class="text-xs font-bold ${isSelected ? 'text-white' : 'text-slate-800'}">${slot.title}</div>
+                    <div class="text-[11px] font-mono mt-1 ${isSelected ? 'text-skybrand-300' : 'text-slate-500'}">
+                        <i class="fa-solid fa-wind mr-1"></i>${slot.wind}
+                    </div>
+                `;
+
+                if (!isUnavailable) {
+                    card.onclick = () => {
+                        state.selectedSlotId = slot.id;
+                        renderTimeSlots();
+                        updateBookingSummary();
+                    };
+                }
+
+                container.appendChild(card);
+            });
+        }
+
+        function selectFlightTier(tierId) {
+            state.selectedTier = tierId;
+            ['classic', 'thermal', 'sunset'].forEach(id => {
+                const btn = document.getElementById(`tier-btn-${id}`);
+                if (id === tierId) {
+                    btn.className = 'text-left p-4 rounded-2xl border-2 border-flare-500 bg-flare-500/5 transition relative';
+                } else {
+                    btn.className = 'text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-skybrand-400 transition relative';
+                }
+            });
+
+            // Sunset VIP includes 360 Media Pack automatically
+            const mediaCheckbox = document.getElementById('addon-media');
+            const mediaPriceTag = document.getElementById('addon-media-price');
+            if (tierId === 'sunset') {
+                mediaCheckbox.checked = true;
+                mediaCheckbox.disabled = true;
+                mediaPriceTag.textContent = 'INCLUDED';
+                mediaPriceTag.className = 'font-mono text-xs font-extrabold text-emerald-600';
+            } else {
+                mediaCheckbox.disabled = false;
+                mediaPriceTag.textContent = '+$39';
+                mediaPriceTag.className = 'font-mono text-xs font-extrabold text-navy-900';
+            }
+
+            updateBookingSummary();
+        }
+
+        function selectPackageFromHero(tierId) {
+            selectFlightTier(tierId);
+            document.getElementById('booking-engine').scrollIntoView({ behavior: 'smooth' });
+            showToast(`Pre-selected ${FLIGHT_TIERS[tierId].name}! Choose your date below.`);
+        }
+
+        function setPassengerCount(count) {
+            state.paxCount = count;
+            const btn1 = document.getElementById('pax-btn-1');
+            const btn2 = document.getElementById('pax-btn-2');
+            if (count === 1) {
+                btn1.className = 'p-3 rounded-xl border-2 border-navy-900 bg-navy-900 text-white text-xs font-bold flex items-center justify-center gap-2 transition';
+                btn2.className = 'p-3 rounded-xl border-2 border-slate-200 text-slate-700 hover:border-navy-900 text-xs font-bold flex items-center justify-center gap-2 transition';
+            } else {
+                btn2.className = 'p-3 rounded-xl border-2 border-navy-900 bg-navy-900 text-white text-xs font-bold flex items-center justify-center gap-2 transition';
+                btn1.className = 'p-3 rounded-xl border-2 border-slate-200 text-slate-700 hover:border-navy-900 text-xs font-bold flex items-center justify-center gap-2 transition';
+            }
+            renderTimeSlots();
+            updateBookingSummary();
+        }
+
+        function updateBookingSummary() {
+            const tier = FLIGHT_TIERS[state.selectedTier];
+            const dateObj = new Date(state.selectedDateStr + 'T12:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const slots = getTimeSlotsForDate(state.selectedDateStr);
+            const activeSlot = slots.find(s => s.id === state.selectedSlotId) || slots[0];
+
+            document.getElementById('summary-tier-badge').textContent = tier.badge;
+            document.getElementById('summary-date').textContent = formattedDate;
+            document.getElementById('summary-slot').textContent = `${activeSlot.time} • ${activeSlot.title.split(' ')[0]} ${activeSlot.title.split(' ')[1]}`;
+
+            const wingLabel = state.weightKg < 45 ? 'Junior 34m²' : state.weightKg <= 100 ? 'Std 38m²' : 'XL 42m²';
+            document.getElementById('summary-pax-wing').textContent = `${state.paxCount} ${state.paxCount === 1 ? 'Flyer' : 'Flyers'} • ${wingLabel}`;
+            document.getElementById('summary-safety-badge').textContent = `VERIFIED (${state.weightKg} kg)`;
+
+            // Calculate pricing
+            const baseSubtotal = tier.price * state.paxCount;
+            let addonsSubtotal = 0;
+            if (document.getElementById('addon-media').checked && state.selectedTier !== 'sunset') {
+                addonsSubtotal += 39 * state.paxCount;
+            }
+            if (document.getElementById('addon-insurance').checked) {
+                addonsSubtotal += 15 * state.paxCount;
+            }
+
+            const grossTotal = baseSubtotal + addonsSubtotal;
+            let discount = 0;
+            const discountRow = document.getElementById('price-row-discount');
+
+            if (state.appliedVoucher) {
+                discount = Math.min(grossTotal, state.appliedVoucher.amount);
+                discountRow.classList.remove('hidden');
+                document.getElementById('price-line-discount').textContent = `-$${discount.toFixed(2)}`;
+            } else {
+                discountRow.classList.add('hidden');
+            }
+
+            const finalDue = Math.max(0, grossTotal - discount);
+
+            document.getElementById('price-line-base-label').textContent = `${tier.name} (×${state.paxCount})`;
+            document.getElementById('price-line-base').textContent = `$${baseSubtotal.toFixed(2)}`;
+            document.getElementById('price-line-addons').textContent = `$${addonsSubtotal.toFixed(2)}`;
+            document.getElementById('price-line-total').textContent = `$${finalDue.toFixed(2)}`;
+        }
+
+        function confirmFlightBooking() {
+            const nameInput = document.getElementById('booking-pax-name').value.trim() || 'Jordan Vance';
+            const tier = FLIGHT_TIERS[state.selectedTier];
+            const dateObj = new Date(state.selectedDateStr + 'T12:00:00');
+            const shortDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const slots = getTimeSlotsForDate(state.selectedDateStr);
+            const activeSlot = slots.find(s => s.id === state.selectedSlotId) || slots[0];
+            const wingLabel = state.weightKg < 45 ? 'Junior 34m²' : state.weightKg <= 100 ? 'Standard 38m²' : 'XL 42m²';
+
+            const randomRef = 'SKR-' + Math.floor(10000 + Math.random() * 90000);
+            document.getElementById('confirm-ref-code').textContent = randomRef;
+            document.getElementById('confirm-pax-name').textContent = `${nameInput} (${state.paxCount} ${state.paxCount === 1 ? 'Flyer' : 'Flyers'})`;
+            document.getElementById('confirm-date-slot').textContent = `${shortDate} • ${activeSlot.time}`;
+            document.getElementById('confirm-package').textContent = `${tier.name} (${tier.duration})`;
+            document.getElementById('confirm-wing').textContent = `${wingLabel} (${state.weightKg} kg)`;
+            document.getElementById('confirm-paid-amount').textContent = document.getElementById('price-line-total').textContent;
+
+            const modal = document.getElementById('booking-confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeBookingConfirmModal() {
+            const modal = document.getElementById('booking-confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // -------------------- GIFT VOUCHER BUILDER & LIVE PREVIEW --------------------
+        function selectVoucherAmount(amount, pkgLabel) {
+            state.voucherAmount = amount;
+            state.voucherPkgLabel = pkgLabel;
+            document.getElementById('custom-voucher-amount-wrap').classList.add('hidden');
+
+            document.querySelectorAll('.v-amt-btn').forEach(btn => {
+                btn.className = 'v-amt-btn p-3 rounded-2xl border-2 border-slate-200 bg-white text-center hover:border-amber-400 transition';
+            });
+            const activeBtn = document.getElementById(`v-amt-${amount}`);
+            if (activeBtn) {
+                activeBtn.className = 'v-amt-btn p-3 rounded-2xl border-2 border-amber-500 bg-amber-50 text-center transition';
+            }
+            updateVoucherPreview();
+        }
+
+        function enableCustomVoucherAmount() {
+            document.getElementById('custom-voucher-amount-wrap').classList.remove('hidden');
+            document.querySelectorAll('.v-amt-btn').forEach(btn => {
+                btn.className = 'v-amt-btn p-3 rounded-2xl border-2 border-slate-200 bg-white text-center hover:border-amber-400 transition';
+            });
+            document.getElementById('v-amt-custom').className = 'v-amt-btn p-3 rounded-2xl border-2 border-amber-500 bg-amber-50 text-center transition';
+            updateCustomVoucherValue();
+        }
+
+        function updateCustomVoucherValue() {
+            const val = parseInt(document.getElementById('custom-voucher-input').value, 10) || 150;
+            state.voucherAmount = Math.max(50, Math.min(600, val));
+            state.voucherPkgLabel = 'Custom Tandem Flight Credit';
+            updateVoucherPreview();
+        }
+
+        function setVoucherTheme(theme) {
+            state.voucherTheme = theme;
+            document.querySelectorAll('.v-theme-btn').forEach(btn => {
+                btn.className = 'v-theme-btn px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 text-xs font-bold hover:border-slate-300 transition';
+            });
+            const active = document.getElementById(`v-theme-${theme}`);
+            if (active) {
+                active.className = 'v-theme-btn px-3 py-2.5 rounded-xl border-2 border-navy-900 bg-navy-900 text-white text-xs font-bold transition';
+            }
+
+            const band = document.getElementById('voucher-header-band');
+            const label = document.getElementById('preview-occasion-label');
+            if (theme === 'birthday') {
+                band.className = 'px-6 py-4 bg-gradient-to-r from-flare-500 via-amber-400 to-yellow-300 text-navy-950 flex items-center justify-between';
+                label.textContent = 'BIRTHDAY SKY EDITION • FIRST CLASS';
+            } else if (theme === 'anniversary') {
+                band.className = 'px-6 py-4 bg-gradient-to-r from-rose-400 via-amber-300 to-amber-500 text-navy-950 flex items-center justify-between';
+                label.textContent = 'ANNIVERSARY WING-TO-WING PASS';
+            } else if (theme === 'holiday') {
+                band.className = 'px-6 py-4 bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-300 text-navy-950 flex items-center justify-between';
+                label.textContent = 'HOLIDAY GOLDEN FLIGHT GIFT';
+            } else {
+                band.className = 'px-6 py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-flare-500 text-navy-950 flex items-center justify-between';
+                label.textContent = 'ADVENTURE FLIGHT AUTHORIZATION';
+            }
+        }
+
+        function setVoucherDelivery(method) {
+            state.voucherDelivery = method;
+            const emailBtn = document.getElementById('v-del-email');
+            const printBtn = document.getElementById('v-del-print');
+            const tag = document.getElementById('preview-delivery-tag');
+            if (method === 'email') {
+                emailBtn.className = 'py-2 px-3 rounded-xl border-2 border-skybrand-600 bg-skybrand-50 text-skybrand-800 text-xs font-bold';
+                printBtn.className = 'py-2 px-3 rounded-xl border-2 border-slate-200 bg-white text-slate-600 text-xs font-bold';
+                tag.textContent = 'Instant Digital';
+            } else {
+                printBtn.className = 'py-2 px-3 rounded-xl border-2 border-skybrand-600 bg-skybrand-50 text-skybrand-800 text-xs font-bold';
+                emailBtn.className = 'py-2 px-3 rounded-xl border-2 border-slate-200 bg-white text-slate-600 text-xs font-bold';
+                tag.textContent = 'Print-Ready PDF';
+            }
+        }
+
+        function updateVoucherPreview() {
+            const recipient = document.getElementById('v-recipient').value.trim() || 'Alex Rivera';
+            const sender = document.getElementById('v-sender').value.trim() || 'Maya Lin';
+            const msg = document.getElementById('v-message').value.trim() || "Cleared for takeoff! Happy Birthday — let's touch the clouds!";
+
+            document.getElementById('preview-recipient').textContent = recipient;
+            document.getElementById('preview-sender').textContent = sender;
+            document.getElementById('preview-message').textContent = `"${msg}"`;
+            document.getElementById('preview-amount').textContent = `$${state.voucherAmount}`;
+            document.getElementById('preview-pkg-name').textContent = state.voucherPkgLabel.toUpperCase();
+            document.getElementById('v-checkout-btn-label').textContent = `Issue Instant Voucher — $${state.voucherAmount}`;
+        }
+
+        function purchaseGiftVoucher() {
+            const buyerEmail = document.getElementById('v-buyer-email').value.trim() || 'maya@example.com';
+            const randomDigits = Math.floor(100 + Math.random() * 900);
+            const newCode = `FLY-${randomDigits}-VIP`;
+            state.generatedVoucherCode = newCode;
+
+            // Register newly created voucher so recipient can redeem it immediately!
+            state.voucherRegistry[newCode] = {
+                amount: state.voucherAmount,
+                label: state.voucherPkgLabel
+            };
+
+            document.getElementById('preview-voucher-code').textContent = newCode;
+            document.getElementById('issued-voucher-code').textContent = newCode;
+            document.getElementById('issued-voucher-val-desc').textContent = `$${state.voucherAmount}.00 Credit • Valid 12 Months`;
+            document.getElementById('issued-voucher-subtext').textContent = `Dispatched to ${buyerEmail} and activated in our flight registry.`;
+
+            const modal = document.getElementById('voucher-issued-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeVoucherIssuedModal() {
+            const modal = document.getElementById('voucher-issued-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function useNewlyIssuedVoucherNow() {
+            closeVoucherIssuedModal();
+            applyVoucherCode(state.generatedVoucherCode);
+            document.getElementById('booking-engine').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // -------------------- VOUCHER REDEMPTION LOGIC --------------------
+        function openRedeemModal() {
+            const modal = document.getElementById('redeem-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.getElementById('modal-redeem-feedback').classList.add('hidden');
+        }
+
+        function closeRedeemModal() {
+            const modal = document.getElementById('redeem-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function applyVoucherCode(rawCode) {
+            const cleanCode = (rawCode || '').trim().toUpperCase();
+            const record = state.voucherRegistry[cleanCode];
+            if (!record) {
+                return false;
+            }
+            state.appliedVoucher = { code: cleanCode, amount: record.amount };
+            document.getElementById('inline-voucher-input').value = cleanCode;
+            const banner = document.getElementById('applied-voucher-banner');
+            banner.classList.remove('hidden');
+            document.getElementById('applied-voucher-text').textContent = `${cleanCode} (-$${record.amount})`;
+            updateBookingSummary();
+            return true;
+        }
+
+        function applyInlineVoucher() {
+            const code = document.getElementById('inline-voucher-input').value;
+            if (applyVoucherCode(code)) {
+                showToast(`Voucher ${code.toUpperCase()} applied! Balance updated.`);
+            } else {
+                showToast('Invalid voucher code. Try FLY-SKY-2026');
+            }
+        }
+
+        function submitModalVoucher() {
+            const code = document.getElementById('modal-voucher-code').value;
+            const fb = document.getElementById('modal-redeem-feedback');
+            if (applyVoucherCode(code)) {
+                closeRedeemModal();
+                document.getElementById('booking-engine').scrollIntoView({ behavior: 'smooth' });
+                showToast(`Voucher ${code.toUpperCase()} applied to your flight!`);
+            } else {
+                fb.className = 'text-xs font-semibold p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 block';
+                fb.textContent = 'Code not recognized. Try sample code FLY-SKY-2026 or generate a new voucher below.';
+            }
+        }
+
+        function removeAppliedVoucher() {
+            state.appliedVoucher = null;
+            document.getElementById('inline-voucher-input').value = '';
+            document.getElementById('applied-voucher-banner').classList.add('hidden');
+            updateBookingSummary();
+            showToast('Voucher removed from booking.');
+        }
+
+        function applyDemoVoucherAndScroll() {
+            applyVoucherCode('FLY-SKY-2026');
+            document.getElementById('booking-engine').scrollIntoView({ behavior: 'smooth' });
+            showToast('Applied FLY-SKY-2026 ($195 credit) to your booking!');
+        }
+
+        // -------------------- UI HELPERS --------------------
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleFaq(index) {
+            const body = document.getElementById(`faq-body-${index}`);
+            const icon = document.getElementById(`faq-icon-${index}`);
+            const isHidden = body.classList.contains('hidden');
+            if (isHidden) {
+                body.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                body.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        function copyTextToClipboard(text, message) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(message || 'Copied!');
+        }
+
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast-banner');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 3400);
+        }
+
+        // -------------------- EVENT LISTENERS & INITIALIZATION --------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            const weightSlider = document.getElementById('weight-slider');
+            const weightInput = document.getElementById('weight-input');
+            const heightSlider = document.getElementById('height-slider');
+            const ageSlider = document.getElementById('age-slider');
+
+            weightSlider.addEventListener('input', (e) => {
+                const rawVal = parseFloat(e.target.value);
+                weightInput.value = rawVal;
+                state.weightKg = state.unitSystem === 'metric' ? Math.round(rawVal) : Math.round(rawVal / 2.20462);
+                calculateEligibility();
+            });
+
+            weightInput.addEventListener('input', (e) => {
+                const rawVal = parseFloat(e.target.value) || 0;
+                weightSlider.value = rawVal;
+                state.weightKg = state.unitSystem === 'metric' ? Math.round(rawVal) : Math.round(rawVal / 2.20462);
+                calculateEligibility();
+            });
+
+            heightSlider.addEventListener('input', (e) => {
+                state.heightCm = parseInt(e.target.value, 10);
+                updateHeightAndAgeDisplays();
+                calculateEligibility();
+            });
+
+            ageSlider.addEventListener('input', (e) => {
+                state.age = parseInt(e.target.value, 10);
+                updateHeightAndAgeDisplays();
+                calculateEligibility();
+            });
+
+            // Initialize all interactive views
+            updateHeightAndAgeDisplays();
+            calculateEligibility();
+            renderCalendar();
+            renderTimeSlots();
+            updateBookingSummary();
+            updateVoucherPreview();
+        });
+    </script>
+</body>
+</html>
